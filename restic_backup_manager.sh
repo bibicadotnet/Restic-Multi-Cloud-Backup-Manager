@@ -13,7 +13,7 @@ export RESTIC_PASSWORD="your-secure-password"
 # Mặc định để trống là bỏ qua không dùng thêm cloud dự phòng
 # Dùng thêm nhiều cloud thì cách nhau bởi khoảng trắng (dùng theo cú pháp của rclone)
 # Ví dụ: google-drive-api:restic-backup/bibica-net cloudflare-r2:bibica-net
-SECONDARY_REMOTE="google-drive-api:restic-backup/bibica-net cloudflare-r2:bibica-net"  
+SECONDARY_REMOTE=""  
 
 # Thư mục và file cần backup
 # Mỗi thư mục hoặc file cách nhau bởi khoảng trắng
