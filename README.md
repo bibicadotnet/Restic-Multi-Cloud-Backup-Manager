@@ -1,5 +1,21 @@
 # Restic-Multi-Cloud-Backup-Manager
 Bash script tự động sao lưu qua Restic và Rclone
+```
+[2025-01-22 11:37:00] Bắt đầu backup - cloudflare-free:bibica-net
+[2025-01-22 11:37:00] Repository chưa tồn tại, đang khởi tạo...
+[2025-01-22 11:37:04] Khởi tạo repository thành công, thực hiện lại backup...
+[2025-01-22 11:37:18] Backup thành công
+[2025-01-22 11:37:18] Bắt đầu dọn dẹp backup cũ
+[2025-01-22 11:37:20] Dọn dẹp backup cũ thành công
+[2025-01-22 11:37:20] Bắt đầu kiểm tra toàn vẹn dữ liệu
+[2025-01-22 11:37:32] Kiểm tra toàn vẹn dữ liệu thành công
+[2025-01-22 11:37:32] Bắt đầu sao lưu dự phòng
+[2025-01-22 11:37:32] Có nhiều remote được cấu hình, chạy song song
+[2025-01-22 11:37:39] Sao lưu dự phòng thành công - cloudflare-r2:bibica-net
+[2025-01-22 11:38:50] Sao lưu dự phòng thành công - google-drive-api:bibica-net
+[2025-01-22 11:38:50] Hoàn thành tất cả sao lưu dự phòng
+[2025-01-22 11:38:50] Hoàn tất quy trình backup
+```
 
 # Cài đặt
 - Cài đặt [Restic](https://restic.readthedocs.io/en/latest/020_installation.html) là được, không cần làm gì thêm
