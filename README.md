@@ -76,7 +76,7 @@ SECONDARY_REMOTE="google-drive-api:restic-backup/bibica-net cloudflare-r2:bibica
 Chạy thử Script:
 
 ```
-/restic/restic_backup_manager.sh
+./restic/restic_backup_manager.sh
 ````
 # Cấu hình Cron để chạy tự động:
 
@@ -120,4 +120,8 @@ restic restore latest --target /
 Bật lại Cron sau khi khôi phục:
 ```
 (crontab -l 2>/dev/null; echo "0 * * * * /restic/restic_backup_manager.sh") | crontab -
+```
+# Tự cập nhập biến cấu hình Restic
+```
+./restic/setup_restic_wrapper.sh
 ```
