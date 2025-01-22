@@ -2,13 +2,14 @@
 Bash script tự động sao lưu qua Restic và Rclone
 
 # Cài đặt
+- Cài đặt [Restic](https://restic.readthedocs.io/en/latest/020_installation.html) là được, không cần làm gì thêm
+- Với [Rclone](https://rclone.org/install/) cấu hình sẵn tối thiểu 1 dịch vụ cloud storage cho Restic, dùng thêm nhiều cloud storage dự phòng thì cứ tạo thêm
+- Thông báo Telegram, lấy `BOT_API_KEY` và `CHAT_ID` để nhận tin nhắn
 ```
 sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/restic_backup_manager.sh && sudo chmod +x /restic/restic_backup_manager.sh
 ```
 # Cấu hình
-```
-nano /restic/restic_backup_manager.sh
-```
+
 #### Cấu hình Telegram
 ```
 BOT_API_KEY="xxxxx:xxxxxxxxxxxxxxxxxxxx"
@@ -38,15 +39,14 @@ KEEP_DAILY=31	# giữ lại 31 bản snapshot (1 bản mỗi ngày trong 31 ng�
 KEEP_MONTHLY=12	# giữ lại 12 bản snapshot (1 bản mỗi tháng trong 12 tháng gần nhất)
 ```
 #### Chính sách kiểm tra toàn vẹn dữ liệu
-Muốn chạy kiểm tra lúc 3h chiều thì sửa VERIFY_HOUR=15
+Muốn chạy kiểm tra lúc 3h chiều thì sửa `VERIFY_HOUR=15`
 ```
 VERIFY_HOUR=4	# Mặc định lúc 4h sáng mỗi ngày
 ```
 #### Cấu hình Secondary Backup 
 - Mặc định để trống: không dùng cloud dự phòng
 - Các cloud thêm vào theo cú pháp của rclone, các cloud cách nhau bởi khoảng trắng
-
-Ví dụ: SECONDARY_REMOTE="cloudflare-free:bibica-net cloudflare-r2:bibica-net google-drive-api:bibica-net"
 ```
 SECONDARY_REMOTE=""
 ```
+Ví dụ: `SECONDARY_REMOTE="cloudflare-free:bibica-net cloudflare-r2:bibica-net google-drive-api:bibica-net"`
