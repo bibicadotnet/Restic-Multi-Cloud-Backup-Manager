@@ -27,8 +27,10 @@ Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](htt
 Tải Script:
 
 ```
-sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/restic_backup_manager.sh
-sudo chmod +x /restic/restic_backup_manager.sh
+apt-get -y install wget git # hoặc yum -y install wget git nếu dùng OS khác
+git clone https://github.com/bibicadotnet/Restic-Multi-Cloud-Backup-Manager.git restic
+rm -rf restic/.git restic/README.md
+chmod 755 restic/*.sh
 ```
 # Chỉnh sửa Cấu hình:
 
