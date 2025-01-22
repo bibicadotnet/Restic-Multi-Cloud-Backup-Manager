@@ -1,19 +1,28 @@
 #!/bin/bash
 
-# Kiểm tra xem `jq` đã được cài đặt chưa (cần để xử lý JSON từ API GitHub)
-if ! command -v jq &> /dev/null; then
-    echo "Công cụ 'jq' chưa được cài đặt. Tự động cài đặt jq..."
-    if command -v apt &> /dev/null; then
-        sudo apt update && sudo apt install -y jq
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y jq
-    elif command -v dnf &> /dev/null; then
-        sudo dnf install -y jq
-    else
-        echo "Lỗi: Không thể xác định trình quản lý gói để cài đặt jq."
-        exit 1
-    fi
-fi
+# Hàm kiểm tra và cài đặt các công cụ cần thiết
+install_required_tools() {
+    local tools=("$@")  # Danh sách các công cụ cần kiểm tra và cài đặt
+
+    for tool in "${tools[@]}"; do
+        if ! command -v "$tool" &> /dev/null; then
+            echo "Công cụ '$tool' chưa được cài đặt. Tự động cài đặt $tool..."
+            if command -v apt &> /dev/null; then
+                sudo apt update && sudo apt install -y "$tool"
+            elif command -v yum &> /dev/null; then
+                sudo yum install -y "$tool"
+            elif command -v dnf &> /dev/null; then
+                sudo dnf install -y "$tool"
+            else
+                echo "Lỗi: Không thể xác định trình quản lý gói để cài đặt $tool."
+                exit 1
+            fi
+        fi
+    done
+}
+
+# Kiểm tra và cài đặt các công cụ cần thiết
+install_required_tools "bzip2" "jq"
 
 # Lấy phiên bản mới nhất của Restic từ GitHub
 LATEST_RELEASE=$(curl -s https://api.github.com/repos/restic/restic/releases/latest | jq -r .tag_name)
