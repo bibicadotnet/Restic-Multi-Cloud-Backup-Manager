@@ -16,53 +16,106 @@ Bash script tự động sao lưu qua Restic và Rclone
 [2025-01-22 11:38:50] Hoàn thành tất cả sao lưu dự phòng
 [2025-01-22 11:38:50] Hoàn tất quy trình backup
 ```
-
+Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](https://bibica.net/restic-multi-cloud-backup-manager-bash-script-sao-luu-qua-restic-va-rclone/)
 # Cài đặt
-- Cài đặt [Restic](https://restic.readthedocs.io/en/latest/020_installation.html) là được, không cần làm gì thêm
-- Với [Rclone](https://rclone.org/install/) cấu hình sẵn tối thiểu 1 dịch vụ cloud storage cho Restic, dùng thêm nhiều cloud storage dự phòng thì cứ tạo thêm
+- Cài đặt [Restic](https://restic.readthedocs.io/en/latest/020_installation.html) chỉ cần cài đặt Restic là đủ, không cần thực hiện thêm bước nào khác.
+- Với [Rclone](https://rclone.org/install/) cấu hình ít nhất một dịch vụ cloud storage cho Restic. Nếu muốn sử dụng nhiều dịch vụ cloud storage dự phòng, bạn có thể tạo thêm các cấu hình tương ứng.
+   -   Khuyến nghị: Sử dụng các dịch vụ cloud object storage như Amazon S3 hoặc Cloudflare R2 để đạt hiệu quả cao về tốc độ và độ ổn định.
+   -   Nếu không có: Có thể sử dụng Google Drive, tuy tốc độ không nhanh bằng các dịch vụ cloud object storage, nhưng tiện lợi vì hầu hết người dùng đều có sẵn tài khoản Google.
 - Thông báo Telegram, lấy `BOT_API_KEY` và `CHAT_ID` để nhận tin nhắn
-```
-sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/restic_backup_manager.sh && sudo chmod +x /restic/restic_backup_manager.sh
-```
-# Cấu hình
+# Tải và Cấu hình Script
+Tải Script:
 
-#### Cấu hình Telegram
 ```
-BOT_API_KEY="xxxxx:xxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxx"
+sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/restic_backup_manager.sh
+sudo chmod +x /restic/restic_backup_manager.sh
 ```
-#### Cấu hình Restic Primary Backup
+# Chỉnh sửa Cấu hình:
+
+Mở file cấu hình:
+
+```
+nano /restic/restic_backup_manager.sh
+```
+Cấu hình Telegram Bot:
+
+```
+BOT_API_KEY="xxxxxxxx:xxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxx"
+```
+Cấu hình Restic:
+
 ```
 export RESTIC_REPOSITORY="rclone:cloudflare-free:bibica-net"
-export RESTIC_PASSWORD="your-secure-password"	# đổi thành 1 password tùy thích
+export RESTIC_PASSWORD="your-secure-password"
 ```
-- `RESTIC_REPOSITORY`: nơi lưu trữ các bản sao lưu chính
-
-Ví dụ: `cloudflare-free` tên của remote đã cấu hình trong Rclone
-
-- `/restic-backup/bibica-net` đường dẫn thư mục trên cloudflare-free
-- `RESTIC_PASSWORD`: mật khẩu sử dụng để mã hóa các bản sao lưu
-- `your-secure-password` mật khẩu đặt tùy ý
-#### Thư mục và file cần sao lưu
+Cấu hình thư mục và file cần sao lưu:
 ```
 BACKUP_DIR="/home /var/spool/cron/crontabs/root"
 ```
-Mỗi thư mục hoặc file cách nhau bởi khoảng trắng
-#### Chính sách giữ backup
+Cấu hình chính sách giữ backup:
+
 ```
-KEEP_HOURLY=24	# giữ lại 24 bản snapshot (1 bản mỗi giờ trong 24 giờ gần nhất)
-KEEP_DAILY=31	# giữ lại 31 bản snapshot (1 bản mỗi ngày trong 31 ngày gần nhất)
-KEEP_MONTHLY=12	# giữ lại 12 bản snapshot (1 bản mỗi tháng trong 12 tháng gần nhất)
+KEEP_HOURLY=24
+KEEP_DAILY=31
+KEEP_MONTHLY=12
 ```
-#### Chính sách kiểm tra toàn vẹn dữ liệu
+Cấu hình kiểm tra toàn vẹn dữ liệu:
+
 ```
-VERIFY_HOUR=4	# Mặc định lúc 4h sáng mỗi ngày
+VERIFY_HOUR=4
 ```
-Muốn chạy kiểm tra lúc 3h chiều thì sửa `VERIFY_HOUR=15`
-#### Cấu hình Secondary Backup 
+Cấu hình Secondary Backup (nếu cần):
+
 ```
-SECONDARY_REMOTE=""
+SECONDARY_REMOTE="google-drive-api:restic-backup/bibica-net cloudflare-r2:bibica-net"
 ```
-- Mặc định để trống: không dùng cloud dự phòng
-- Các cloud thêm vào theo cú pháp của rclone, các cloud cách nhau bởi khoảng trắng
-Ví dụ: `SECONDARY_REMOTE="cloudflare-free:bibica-net cloudflare-r2:bibica-net google-drive-api:bibica-net"`
+# Chạy Script
+Chạy thử Script:
+
+```
+/restic/restic_backup_manager.sh
+````
+# Cấu hình Cron để chạy tự động:
+
+Mở trình chỉnh sửa cron:
+
+```
+crontab -e
+```
+Thêm dòng sau để chạy script mỗi giờ:
+
+```
+0 * * * * /restic/restic_backup_manager.sh
+```
+Hoặc thêm nhanh bằng lệnh:
+
+```
+(crontab -l 2>/dev/null; echo "0 * * * * /restic/restic_backup_manager.sh") | crontab -
+```
+# Khôi phục Dữ liệu
+Tắt Cron trước khi khôi phục:
+
+```
+crontab -l | grep -v "[[:space:]]/restic/restic_backup_manager.sh$" | crontab -
+```
+Liệt kê các snapshot:
+```
+restic snapshots
+```
+Khôi phục một snapshot cụ thể:
+```
+restic restore <snapshot_id> --target /restore/test
+```
+Khôi phục thư mục hoặc file cụ thể:
+```
+restic restore <snapshot_id>:/path/to/restore --target /restore/test
+```
+khôi phục mọi thư mục và tệp từ bản sao lưu gần nhất (latest) vào chính xác vị trí ban đầu
+```
+restic restore latest --target /
+```
+Bật lại Cron sau khi khôi phục:
+```
+(crontab -l 2>/dev/null; echo "0 * * * * /restic/restic_backup_manager.sh") | crontab -
+```
