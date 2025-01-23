@@ -2,8 +2,8 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxx"
+BOT_API_KEY="xxxxxxxxxx:xxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
@@ -206,6 +206,9 @@ restore_menu() {
 	restic snapshots -r "$RESTIC_REPOSITORY"
 	echo
 	
+	# Sau khi hiển thị danh sách snapshots, lưu trữ kết quả
+	snapshots_result=$(restic snapshots -r "$RESTIC_REPOSITORY")
+	
     while true; do
         read -p "📋 Nhập ID bản sao lưu để phục hồi (hoặc 'back' để quay lại): " snapshot_id
 
@@ -223,7 +226,8 @@ restore_menu() {
         fi
 
         # Kiểm tra xem ID có tồn tại trong kho lưu trữ không
-		if ! restic snapshots -r "$RESTIC_REPOSITORY" | grep -q -w "$snapshot_id"; then
+	#	if ! restic snapshots -r "$RESTIC_REPOSITORY" | grep -q -w "$snapshot_id"; then
+		if ! echo "$snapshots_result" | grep -q -w "$snapshot_id"; then
 			echo
 			echo "❌ ID không tồn tại trong kho lưu trữ."
 			echo
@@ -308,6 +312,14 @@ restore_menu() {
 					echo
                     continue
                 fi
+				
+				    # Kiểm tra xem đường dẫn có tồn tại trong snapshot không
+				if ! restic ls -r "$RESTIC_REPOSITORY" "$snapshot_id":"$restore_item" >/dev/null 2>&1; then
+					echo
+					echo "❌ Đường dẫn không tồn tại trong bản sao lưu."
+					echo
+					continue
+				fi
 
                 break
             done
