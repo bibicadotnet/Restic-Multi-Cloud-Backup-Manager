@@ -2,8 +2,8 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxx:xxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxxxx"
+BOT_API_KEY="xxxxxx:xxxxxxxxxx"
+CHAT_ID="xxxxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
