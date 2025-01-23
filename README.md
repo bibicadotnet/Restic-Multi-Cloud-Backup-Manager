@@ -82,11 +82,11 @@ crontab -e
 ```
 Thêm dòng sau để chạy script mỗi giờ:
 ```
-0 * * * * /restic/restic_backup_manager.sh
+0 * * * * ./restic/restic_backup_manager.sh
 ```
 Hoặc thêm nhanh bằng lệnh:
 ```
-(crontab -l 2>/dev/null; echo "0 * * * * /restic/restic_backup_manager.sh") | crontab -
+(crontab -l 2>/dev/null; echo "0 * * * * ./restic/restic_backup_manager.sh") | crontab -
 ```
 # Cài đặt alias
 Tạo phím tắt
