@@ -2,8 +2,8 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxx:xxxxxxxxxx"
-CHAT_ID="xxxxxxxxxxxx"
+BOT_API_KEY="xxxxxxxxx:xxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
@@ -16,9 +16,9 @@ BACKUP_DIR="/home /var/spool/cron/crontabs/root"
 
 # Chính sách giữ backup
 # Cấu hình mặc định tối đa giữ lại 67 bản
-KEEP_HOURLY=24	# giữ lại 24 bản snapshot (1 bản mỗi giờ trong 24 giờ gần nhất)
-KEEP_DAILY=31	# giữ lại 31 bản snapshot (1 bản mỗi ngày trong 31 ngày gần nhất)
-KEEP_MONTHLY=12	# giữ lại 12 bản snapshot (1 bản mỗi tháng trong 12 tháng gần nhất)
+KEEP_HOURLY=24	# giữ lại 24 bản snapshot (1 bản mỗi giờ trong 24 giờ gần nhất)
+KEEP_DAILY=31	# giữ lại 31 bản snapshot (1 bản mỗi ngày trong 31 ngày gần nhất)
+KEEP_MONTHLY=12	# giữ lại 12 bản snapshot (1 bản mỗi tháng trong 12 tháng gần nhất)
 
 # Chính sách kiểm tra toàn vẹn dữ liệu
 # Muốn chạy kiểm tra lúc 3h chiều thì sửa VERIFY_HOUR=15
@@ -45,9 +45,8 @@ touch "$LOG_FILE"
 
 log() { 
    local message="$1"
-   local timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
-   echo "$timestamp $message" >> "$LOG_FILE"
-   echo "$timestamp $message"
+   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >> "$LOG_FILE"
+   echo "$message"
    if [ $(wc -c < "$LOG_FILE") -gt 1048576 ]; then
        grep "\[Lỗi\]" "$LOG_FILE" | tail -n 10 > "$LOG_FILE.tmp"
        mv "$LOG_FILE.tmp" "$LOG_FILE"
@@ -69,13 +68,10 @@ export BOT_API_KEY CHAT_ID LOG_FILE
 for cmd in restic rclone xargs; do command -v $cmd >/dev/null || { notify_error "Không tìm thấy lệnh $cmd" "$cmd"; exit 1; }; done
 for path in $BACKUP_DIR; do [ -e "$path" ] || { notify_error "Đường dẫn không tồn tại" "$path"; exit 1; }; done
 
-# Kiểm tra và ngăn chặn chạy song song
-if ! (
-    flock -n 200 || {
-        log "[CRITICAL] Một tiến trình backup khác đang chạy. Không thể bắt đầu tiến trình mới."
-        exit 1
-    }
-# Tối ưu tiến trình
+# Thiết lập khóa và tối ưu tiến trình
+exec 200>"$LOCKFILE" && flock -n 200 || { log "[Lỗi] Một tiến trình Restic Multi-Cloud Backup Manager khác đang chạy"; exit 1; }
+trap 'exec 200>&-; rm -f "$LOCKFILE"' EXIT
+
 renice -n 19 -p $$ >/dev/null 2>&1 && ionice -c 2 -n 7 -p $$ >/dev/null 2>&1
 
 # Hàm tạo alias tự động
@@ -408,9 +404,3 @@ fi
 }
 
 log "Hoàn tất quy trình backup"
-
-# Kiểm tra và ngăn chặn chạy song song bước cuối
-    exit 0
-) 200>"$LOCKFILE"; then
-    exit 1
-fi
