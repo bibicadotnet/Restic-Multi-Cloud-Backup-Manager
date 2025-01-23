@@ -7,7 +7,7 @@ CHAT_ID="xxxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
-export RESTIC_REPOSITORY="rclone:google-drive-api:bibica-net"
+export RESTIC_REPOSITORY="rclone:cloudflare-free:bibica-net"
 export RESTIC_PASSWORD="your-secure-password"	# đổi thành 1 password tùy thích
 
 # Thư mục và file cần sao lưu
@@ -45,8 +45,9 @@ touch "$LOG_FILE"
 
 log() { 
    local message="$1"
-   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >> "$LOG_FILE"
-   echo "$message"
+   local timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
+   echo "$timestamp $message" >> "$LOG_FILE"
+   echo "$timestamp $message"
    if [ $(wc -c < "$LOG_FILE") -gt 1048576 ]; then
        grep "\[Lỗi\]" "$LOG_FILE" | tail -n 10 > "$LOG_FILE.tmp"
        mv "$LOG_FILE.tmp" "$LOG_FILE"
@@ -68,10 +69,13 @@ export BOT_API_KEY CHAT_ID LOG_FILE
 for cmd in restic rclone xargs; do command -v $cmd >/dev/null || { notify_error "Không tìm thấy lệnh $cmd" "$cmd"; exit 1; }; done
 for path in $BACKUP_DIR; do [ -e "$path" ] || { notify_error "Đường dẫn không tồn tại" "$path"; exit 1; }; done
 
-# Thiết lập khóa và tối ưu tiến trình
-exec 200>"$LOCKFILE" && flock -n 200 || { log "[Lỗi] Một tiến trình Restic Multi-Cloud Backup Manager khác đang chạy"; exit 1; }
-trap 'exec 200>&-; rm -f "$LOCKFILE"' EXIT
-
+# Kiểm tra và ngăn chặn chạy song song
+if ! (
+    flock -n 200 || {
+        log "[CRITICAL] Một tiến trình backup khác đang chạy. Không thể bắt đầu tiến trình mới."
+        exit 1
+    }
+# Tối ưu tiến trình
 renice -n 19 -p $$ >/dev/null 2>&1 && ionice -c 2 -n 7 -p $$ >/dev/null 2>&1
 
 # Hàm tạo alias tự động
@@ -404,3 +408,9 @@ fi
 }
 
 log "Hoàn tất quy trình backup"
+
+# Kiểm tra và ngăn chặn chạy song song bước cuối
+    exit 0
+) 200>"$LOCKFILE"; then
+    exit 1
+fi
