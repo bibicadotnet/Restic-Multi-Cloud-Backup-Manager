@@ -2,8 +2,8 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxxx:xxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxxx"
+BOT_API_KEY="xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
@@ -45,8 +45,9 @@ touch "$LOG_FILE"
 
 log() { 
    local message="$1"
-   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >> "$LOG_FILE"
-   echo "$message"
+   local timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
+   echo "$timestamp $message" >> "$LOG_FILE"
+   echo "$timestamp $message"
    if [ $(wc -c < "$LOG_FILE") -gt 1048576 ]; then
        grep "\[Lỗi\]" "$LOG_FILE" | tail -n 10 > "$LOG_FILE.tmp"
        mv "$LOG_FILE.tmp" "$LOG_FILE"
