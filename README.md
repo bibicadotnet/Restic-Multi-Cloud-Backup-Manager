@@ -27,8 +27,8 @@ Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](htt
 # Cài đặt
 - Cài đặt [Restic](https://restic.readthedocs.io/en/latest/020_installation.html) chỉ cần cài đặt Restic là đủ, không cần thực hiện thêm bước nào khác.
 - Với [Rclone](https://rclone.org/install/) cấu hình ít nhất một dịch vụ cloud storage cho Restic. Nếu muốn sử dụng nhiều dịch vụ cloud storage dự phòng, bạn có thể tạo thêm các cấu hình tương ứng.
-   -   Khuyến nghị: Sử dụng các dịch vụ cloud object storage như Amazon S3 hoặc Cloudflare R2 để đạt hiệu quả cao về tốc độ và độ ổn định.
-   -   Nếu không có: Có thể sử dụng Google Drive, tuy tốc độ không nhanh bằng các dịch vụ cloud object storage, nhưng tiện lợi vì hầu hết người dùng đều có sẵn tài khoản Google.
+   -   Khuyến nghị: sử dụng các dịch vụ cloud object storage như Amazon S3 hoặc Cloudflare R2 để đạt hiệu quả cao về tốc độ và độ ổn định.
+   -   Nếu không có S3: có thể sử dụng Google Drive, tuy tốc độ không nhanh bằng các dịch vụ cloud object storage, nhưng tiện lợi vì hầu hết người dùng đều có sẵn tài khoản Google.
 - Thông báo Telegram, lấy `BOT_API_KEY` và `CHAT_ID` để nhận tin nhắn
 # Tải và Cấu hình Script
 Tải Script:
