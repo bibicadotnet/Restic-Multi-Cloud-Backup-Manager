@@ -32,7 +32,6 @@ Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](htt
 - Thông báo Telegram, lấy `BOT_API_KEY` và `CHAT_ID` để nhận tin nhắn
 # Tải và Cấu hình Script
 Tải Script:
-
 ```
 sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/restic_backup_manager.sh && sudo chmod +x /restic/restic_backup_manager.sh
 ```
@@ -76,17 +75,11 @@ Chạy thử Script:
 ````
 # Cấu hình Cron để chạy tự động:
 
-Mở trình chỉnh sửa cron:
+Bạn sẽ thấy 1 thông báo tương tự như thế nếu chưa cấu hình cron, copy sẵn lệnh bên dưới chạy là được
 ```
-crontab -e
-```
-Thêm dòng sau để chạy script mỗi giờ:
-```
-0 * * * * ./restic/restic_backup_manager.sh
-```
-Hoặc thêm nhanh bằng lệnh:
-```
-(crontab -l 2>/dev/null; echo "0 * * * * ./restic/restic_backup_manager.sh") | crontab -
+* Restic Multi-Cloud Backup Manager chưa được cấu hình để chạy qua cron.
+* Bạn có thể chạy lệnh bên dưới để thêm nó vào cron:
+(crontab -l 2>/dev/null; echo "0 * * * * /root/restic/restic_backup_manager.sh") | crontab -
 ```
 # Cài đặt alias
 Tạo phím tắt
