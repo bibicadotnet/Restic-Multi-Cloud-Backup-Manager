@@ -2,8 +2,8 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxxxx:xxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxx"
+BOT_API_KEY="xxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 # Nên dùng cloud object storage dạng Amazon S3, Cloudflare R2
@@ -58,7 +58,7 @@ notify_error() {
     log "[Lỗi] $1 - Chi tiết: $2"
     curl -s -X POST "https://api.telegram.org/bot$BOT_API_KEY/sendMessage" -d "chat_id=$CHAT_ID" -d "parse_mode=HTML" \
          -d "text=$(printf "❌ [Lỗi] %s\n🔍 Chi tiết:\n<code>%s</code>\n🖥️ Thông tin hệ thống:\n- Máy chủ: %s\n- Hệ điều hành: %s" "$1" "$2" "$(hostname)" "$(uname -a)")" \
-         || log "[Lỗi] Không thể gửi thông báo đến Telegram"
+         >/dev/null 2>&1 || log "[Lỗi] Không thể gửi thông báo đến Telegram"
 }
 
 # Export các hàm và biến cho xargs
@@ -66,14 +66,31 @@ export -f log notify_error
 export BOT_API_KEY CHAT_ID LOG_FILE
 
 # Kiểm tra yêu cầu
-for cmd in restic rclone xargs; do command -v $cmd >/dev/null || { notify_error "Không tìm thấy lệnh $cmd" "$cmd"; exit 1; }; done
+for cmd in restic rclone xargs curl; do command -v $cmd >/dev/null || { notify_error "Không tìm thấy lệnh $cmd" "$cmd"; exit 1; }; done
 for path in $BACKUP_DIR; do [ -e "$path" ] || { notify_error "Đường dẫn không tồn tại" "$path"; exit 1; }; done
 
 # Thiết lập khóa và tối ưu tiến trình
 exec 200>"$LOCKFILE" && flock -n 200 || { log "[Lỗi] Một tiến trình Restic Multi-Cloud Backup Manager khác đang chạy"; exit 1; }
 trap 'exec 200>&-; rm -f "$LOCKFILE"' EXIT
-
 renice -n 19 -p $$ >/dev/null 2>&1 && ionice -c 2 -n 7 -p $$ >/dev/null 2>&1
+
+# Lấy tên file của script và đường dẫn tuyệt đối của nó
+script_name=$(basename "$0")
+script_path=$(realpath "$0")
+
+# Kiểm tra xem script đã được cấu hình trong cron chưa
+check_cron() {
+    if ! crontab -l | grep -v '^#' | grep -q "$script_name"; then
+        echo -e "\n* Restic Multi-Cloud Backup Manager chưa được cấu hình để chạy qua cron."
+        echo -e "* Bạn có thể chạy lệnh bên dưới để thêm nó vào cron:\n"
+		# Hiển thị lệnh với màu sắc
+        echo -e "\033[1;32m(crontab -l 2>/dev/null; echo \"0 * * * * $script_path\") | crontab -\033[0m\n"
+    fi
+}
+
+# Gọi hàm kiểm tra cron khi chạy script
+check_cron
+
 
 # Hàm tạo alias tự động
 setup_alias() {
@@ -128,16 +145,17 @@ fi
 # Hàm phục hồi
 restore_menu() {
     # Lấy giá trị từ biến môi trường
-    PRIMARY_REPO="$RESTIC_REPOSITORY"
-    SECONDARY_REPOS=($SECONDARY_REMOTE)
+    local PRIMARY_REPO="$RESTIC_REPOSITORY"
+    local SECONDARY_REPOS=($SECONDARY_REMOTE)
 
     # Loại bỏ tiền tố "rclone:" nếu có
     if [[ "$PRIMARY_REPO" =~ ^rclone: ]]; then
-        PRIMARY_REPO_DISPLAY="${PRIMARY_REPO#rclone:}"
+        local PRIMARY_REPO_DISPLAY="${PRIMARY_REPO#rclone:}"
     else
-        PRIMARY_REPO_DISPLAY="$PRIMARY_REPO"
+        local PRIMARY_REPO_DISPLAY="$PRIMARY_REPO"
     fi
-	echo
+
+    echo
     echo "=== CHỌN KHO LƯU TRỮ ĐỂ PHỤC HỒI ==="
     echo "1) Sao lưu chính - $PRIMARY_REPO_DISPLAY"
     
@@ -147,68 +165,68 @@ restore_menu() {
     done
 
     echo "0) Thoát"
-	echo	
+    echo
     read -p "Nhập lựa chọn của bạn: " choice
 
-	case $choice in
-		1)
-			# Kiểm tra xem PRIMARY_REPO đã có "rclone:" chưa
-			if [[ ! "$PRIMARY_REPO" =~ ^rclone: ]]; then
-				export RESTIC_REPOSITORY="rclone:$PRIMARY_REPO"
-			else
-				export RESTIC_REPOSITORY="$PRIMARY_REPO"
-			fi
-			;;
-		0)
-			echo "Thoát Restic Multi-Cloud Backup Manager."
-			echo
-			exit 0
-			;;
-		*)
-			if [[ $choice -ge 2 ]]; then  # Xử lý các lựa chọn từ 2 trở lên
-				# Tính toán chỉ số của kho lưu trữ dự phòng dựa trên lựa chọn
-				index=$((choice - 2))  # Lựa chọn 2 tương ứng với SECONDARY_REPOS[0], 3 tương ứng với SECONDARY_REPOS[1], ...
-				
-				# Kiểm tra xem chỉ số có hợp lệ không
-				if [ $index -ge 0 ] && [ $index -lt ${#SECONDARY_REPOS[@]} ]; then
-					# Kiểm tra xem kho lưu trữ đã có "rclone:" chưa
-					if [[ ! "${SECONDARY_REPOS[$index]}" =~ ^rclone: ]]; then
-						export RESTIC_REPOSITORY="rclone:${SECONDARY_REPOS[$index]}"
-					else
-						export RESTIC_REPOSITORY="${SECONDARY_REPOS[$index]}"
-					fi
-				else
-					echo "Không có kho lưu trữ dự phòng tương ứng với lựa chọn này."
-					restore_menu
-					return
-				fi
-			else
-				echo "Lựa chọn không hợp lệ"
-				restore_menu
-				return
-			fi
-			;;
-	esac
+    case $choice in
+        1)
+            # Kiểm tra xem PRIMARY_REPO đã có "rclone:" chưa
+            if [[ ! "$PRIMARY_REPO" =~ ^rclone: ]]; then
+                local selected_repo="rclone:$PRIMARY_REPO"
+            else
+                local selected_repo="$PRIMARY_REPO"
+            fi
+            ;;
+        0)
+            echo "Thoát Restic Multi-Cloud Backup Manager."
+            echo
+            exit 0
+            ;;
+        *)
+            if [[ $choice -ge 2 ]]; then  # Xử lý các lựa chọn từ 2 trở lên
+                # Tính toán chỉ số của kho lưu trữ dự phòng dựa trên lựa chọn
+                local index=$((choice - 2))  # Lựa chọn 2 tương ứng với SECONDARY_REPOS[0], 3 tương ứng với SECONDARY_REPOS[1], ...
+                
+                # Kiểm tra xem chỉ số có hợp lệ không
+                if [ $index -ge 0 ] && [ $index -lt ${#SECONDARY_REPOS[@]} ]; then
+                    # Kiểm tra xem kho lưu trữ đã có "rclone:" chưa
+                    if [[ ! "${SECONDARY_REPOS[$index]}" =~ ^rclone: ]]; then
+                        local selected_repo="rclone:${SECONDARY_REPOS[$index]}"
+                    else
+                        local selected_repo="${SECONDARY_REPOS[$index]}"
+                    fi
+                else
+                    echo "Không có kho lưu trữ dự phòng tương ứng với lựa chọn này."
+                    restore_menu
+                    return
+                fi
+            else
+                echo "Lựa chọn không hợp lệ"
+                restore_menu
+                return
+            fi
+            ;;
+    esac
 
-	# Kiểm tra xem kho lưu trữ có hợp lệ không
-	if ! restic snapshots -r "$RESTIC_REPOSITORY" > /dev/null 2>&1; then
-		echo "❌ Lỗi: Không thể kết nối đến kho lưu trữ $RESTIC_REPOSITORY."
-		echo "Vui lòng kiểm tra lại cấu hình hoặc chọn kho lưu trữ khác."
-		echo
-		restore_menu
-		return
-	fi
+    # Kiểm tra xem kho lưu trữ có hợp lệ không
+    if ! restic snapshots -r "$selected_repo" > /dev/null 2>&1; then
+        echo "❌ Lỗi: Không thể kết nối đến kho lưu trữ $selected_repo."
+        echo "Vui lòng kiểm tra lại cấu hình hoặc chọn kho lưu trữ khác."
+        echo
+        restore_menu
+        return
+    fi
 
-	# Nếu kho lưu trữ hợp lệ, tiếp tục hiển thị danh sách snapshots
-	echo	
-	echo "Đã chọn kho lưu trữ: $RESTIC_REPOSITORY"
-	echo "=== DANH SÁCH CÁC BẢN SAO LƯU ==="
-	restic snapshots -r "$RESTIC_REPOSITORY"
-	echo
-	
-	# Sau khi hiển thị danh sách snapshots, lưu trữ kết quả
-	snapshots_result=$(restic snapshots -r "$RESTIC_REPOSITORY")
-	
+    # Nếu kho lưu trữ hợp lệ, tiếp tục hiển thị danh sách snapshots
+    echo
+    echo "Đã chọn kho lưu trữ: $selected_repo"
+    echo "=== DANH SÁCH CÁC BẢN SAO LƯU ==="
+    restic snapshots -r "$selected_repo"
+    echo
+
+    # Sau khi hiển thị danh sách snapshots, lưu trữ kết quả
+    local snapshots_result=$(restic snapshots -r "$selected_repo")
+
     while true; do
         read -p "📋 Nhập ID bản sao lưu để phục hồi (hoặc 'back' để quay lại): " snapshot_id
 
@@ -219,25 +237,24 @@ restore_menu() {
 
         # Kiểm tra ID snapshot
         if [[ ! "$snapshot_id" =~ ^[a-f0-9]{8}$ ]]; then
-			echo
+            echo
             echo "❌ ID không hợp lệ. ID phải là chuỗi hex dài 8 ký tự (ví dụ: 96701d8b)."
-			echo
+            echo
             continue
         fi
 
         # Kiểm tra xem ID có tồn tại trong kho lưu trữ không
-	#	if ! restic snapshots -r "$RESTIC_REPOSITORY" | grep -q -w "$snapshot_id"; then
-		if ! echo "$snapshots_result" | grep -q -w "$snapshot_id"; then
-			echo
-			echo "❌ ID không tồn tại trong kho lưu trữ."
-			echo
-			continue
-		fi
+        if ! echo "$snapshots_result" | grep -q -w "$snapshot_id"; then
+            echo
+            echo "❌ ID không tồn tại trong kho lưu trữ."
+            echo
+            continue
+        fi
 
         break
     done
 
-	echo
+    echo
     echo "=== TÙY CHỌN PHỤC HỒI ==="
     echo "1) Phục hồi toàn bộ bản sao lưu"
     echo "2) Phục hồi một phần (thư mục/tập tin cụ thể)"
@@ -247,93 +264,85 @@ restore_menu() {
     case $restore_choice in
         1)
             while true; do
-				echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
-				echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
-				echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
-				read -p "> " restore_path
+                echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
+                echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
+                echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
+                read -p "> " restore_path
                 if [ -z "$restore_path" ]; then
                     restore_path="/"
                 fi
 
                 # Kiểm tra đường dẫn phục hồi
                 if [[ ! "$restore_path" =~ ^/ ]]; then
-					echo
+                    echo
                     echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user"
-					echo
+                    echo
                     continue
                 fi
 
                 break
             done
 
-			echo
-			echo "=== XÁC NHẬN PHỤC HỒI ==="
-			echo -e "📦 Kho lưu trữ: \e[32m$RESTIC_REPOSITORY\e[0m"
-			echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
-			echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
+            echo
+            echo "=== XÁC NHẬN PHỤC HỒI ==="
+            echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
+            echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
+            echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
             read -p "⚠️ Xác nhận phục hồi? (yes/no): " confirm
 
             if [ "$confirm" == "yes" ]; then
-                restic restore -r "$RESTIC_REPOSITORY" "$snapshot_id" --target "$restore_path"
+                restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path"
             else
                 restore_menu
             fi
             ;;
         2)
             while true; do
-				echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
-				echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
-				echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
-				read -p "> " restore_path
+                echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
+                echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
+                echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
+                read -p "> " restore_path
                 if [ -z "$restore_path" ]; then
                     restore_path="/"
                 fi
 
                 # Kiểm tra đường dẫn phục hồi
                 if [[ ! "$restore_path" =~ ^/ ]]; then
-					echo
+                    echo
                     echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user"
-					echo
+                    echo
                     continue
                 fi
 
                 break
             done
 
-            while true; do
+			while true; do
 				echo "📂 Nhập đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi."
 				echo "   Ví dụ: /home/backup (phục hồi thư mục /home/backup từ bản sao lưu): "
 				read -p "> " restore_item
 
-                # Kiểm tra đường dẫn thư mục/tập tin
-                if [[ ! "$restore_item" =~ ^/ ]]; then
+				# Kiểm tra đường dẫn thư mục/tập tin
+				if [[ ! "$restore_item" =~ ^/ ]]; then
 					echo
-                    echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/backup"
-					echo
-                    continue
-                fi
-				
-				    # Kiểm tra xem đường dẫn có tồn tại trong snapshot không
-				if ! restic ls -r "$RESTIC_REPOSITORY" "$snapshot_id":"$restore_item" >/dev/null 2>&1; then
-					echo
-					echo "❌ Đường dẫn không tồn tại trong bản sao lưu."
+					echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/backup"
 					echo
 					continue
 				fi
 
-                break
-            done
-			
-			echo
-			echo "=== XÁC NHẬN PHỤC HỒI ==="
-			echo -e "📦 Kho lưu trữ: \e[32m$RESTIC_REPOSITORY\e[0m"
-			echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
-			echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
-			echo -e "📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: \e[31m$restore_item\e[0m"
-			read -p "⚠️ Xác nhận phục hồi? (yes/no): " confirm
+				break
+			done
+
+            echo
+            echo "=== XÁC NHẬN PHỤC HỒI ==="
+            echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
+            echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
+            echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
+            echo -e "📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: \e[31m$restore_item\e[0m"
+            read -p "⚠️ Xác nhận phục hồi? (yes/no): " confirm
 
             if [ "$confirm" == "yes" ]; then
-                restic restore -r "$RESTIC_REPOSITORY" "$snapshot_id:$restore_item" --target "$restore_path"
+				restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path" --include "$restore_item"
             else
                 restore_menu
             fi
