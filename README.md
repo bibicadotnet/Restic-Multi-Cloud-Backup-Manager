@@ -50,7 +50,7 @@ sudo mkdir -p /restic && sudo wget https://go.bibica.net/restic -O /restic/resti
 # Chỉnh sửa Cấu hình:
 Mở file cấu hình:
 ```
-nano ./restic/restic_backup_manager.sh
+nano /restic/restic_backup_manager.sh
 ```
 Cấu hình Telegram Bot:
 ```
@@ -83,7 +83,7 @@ SECONDARY_REMOTE="google-drive-api:restic-backup/bibica-net cloudflare-r2:bibica
 # Chạy Script
 Chạy thử Script:
 ```
-./restic/restic_backup_manager.sh
+/restic/restic_backup_manager.sh
 ````
 # Cấu hình Cron để chạy tự động:
 
@@ -96,10 +96,10 @@ Bạn sẽ thấy 1 thông báo tương tự như thế nếu chưa cấu hình 
 # Cài đặt alias
 Tạo phím tắt
 ```
-./restic/restic_backup_manager.sh install
+/restic/restic_backup_manager.sh install
 ```
-- Khi gõ `backup` là chạy trực tiếp `./restic/restic_backup_manager.sh` để tạo backup
-- Khi gõ `restore` là gọi chạy trực tiếp `./restic/restic_backup_manager.sh restore`
+- Khi gõ `backup` là chạy trực tiếp `/restic/restic_backup_manager.sh` để tạo backup
+- Khi gõ `restore` là gọi chạy trực tiếp `/restic/restic_backup_manager.sh restore`
 # Khôi phục Dữ liệu
 ```
 restore
@@ -108,5 +108,5 @@ Làm theo hướng dẫn trên màn hình
 # Tự cập nhập biến cấu hình Restic
 Sử dụng biến cấu hình `RESTIC_REPOSITORY` trên shell
 ```
-./restic/setup_restic_wrapper.sh
+/restic/setup_restic_wrapper.sh
 ```
