@@ -39,7 +39,7 @@ Bash script sao lưu và phục hồi dữ liệu qua Restic và Rclone
 Nhập lựa chọn của bạn: 1
 repository 5db6f8b8 opened (version 2, compression level auto)
 [0:00] 100.00%  1 / 1 index files loaded
-restoring snapshot 2df1aa71 of [/home /var/spool/cron/crontabs/root /root/.config/rclone] at 2025-01-27 23:30:15.404757034 +0700 +07 by root@bibica-net to /test004
+restoring snapshot 2df1aa71 of [/home] at 2025-01-27 23:30:15.404757034 +0700 +07 by root@bibica-net to /test004
 Summary: Restored 23 / 22 files/dirs (95.125 KiB / 95.125 KiB) in 0:00
 ```
 Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](https://bibica.net/restic-multi-cloud-backup-manager-bash-script-sao-luu-qua-restic-va-rclone/)
