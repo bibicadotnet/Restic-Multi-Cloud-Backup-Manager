@@ -1,5 +1,7 @@
-# Restic-Multi-Cloud-Backup-Manager
+# Restic-Multi-Cloud-Backup-Manager - backup và restore cho [LCMP](https://github.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal)
 Bash script sao lưu và phục hồi dữ liệu qua Restic và Rclone
+
+
 ```backup
 [2025-01-22 11:37:00] Bắt đầu backup - cloudflare-free:bibica-net
 [2025-01-22 11:37:00] Repository chưa tồn tại, đang khởi tạo...
