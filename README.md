@@ -25,15 +25,22 @@ Bash script sao lưu và phục hồi dữ liệu qua Restic và Rclone
 ```
 ```
 === XÁC NHẬN PHỤC HỒI ===
+=== XÁC NHẬN PHỤC HỒI ===
 📦 Kho lưu trữ: rclone:cloudflare-free:bibica-net
-📋 ID bản sao lưu: beedc7b5
-📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): /
-📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: /home/backup/vercel-simply-static.sh
-⚠️ Xác nhận phục hồi? (yes/no): yes
-repository e8a16cb7 opened (version 2, compression level auto)
+📋 ID bản sao lưu: 2df1aa71
+📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): /test004
+📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: /home/backup
+
+1) Thực hiện phục hồi
+2) Sửa lại đường dẫn phục hồi (nơi dữ liệu giải nén vào)
+3) Sửa lại đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi
+0) Trở về menu chính
+
+Nhập lựa chọn của bạn: 1
+repository 5db6f8b8 opened (version 2, compression level auto)
 [0:00] 100.00%  1 / 1 index files loaded
-restoring snapshot beedc7b5 of [/home /var/spool/cron/crontabs/root] at 2025-01-24 14:15:01.302817431 +0700 +07 by root@bibica-net to /
-Summary: Restored 3 / 1 files/dirs (792 B / 792 B) in 0:00
+restoring snapshot 2df1aa71 of [/home /var/spool/cron/crontabs/root /root/.config/rclone] at 2025-01-27 23:30:15.404757034 +0700 +07 by root@bibica-net to /test004
+Summary: Restored 23 / 22 files/dirs (95.125 KiB / 95.125 KiB) in 0:00
 ```
 Xem hướng dẫn và giải thích chi tiết hơn ở [bài viết gốc](https://bibica.net/restic-multi-cloud-backup-manager-bash-script-sao-luu-qua-restic-va-rclone/)
 # Cài đặt
