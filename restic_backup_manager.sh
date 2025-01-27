@@ -3,8 +3,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # ==================== CẤU HÌNH ====================
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxx:xxxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxxxxxx"
+BOT_API_KEY="xxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 export RESTIC_REPOSITORY="rclone:cloudflare-free:bibica-net"
@@ -102,14 +102,12 @@ setup_alias() {
     local alias_restore="alias restore='$0 restore'"
     local alias_backup="alias backup='$0'"
 
-    # Xác định file cấu hình shell dựa trên shell hiện tại
     if [[ "$SHELL" == *"zsh"* ]]; then
         shell_rc_file="$HOME/.zshrc"
     else
         shell_rc_file="$HOME/.bashrc"
     fi
 
-    # Kiểm tra và cập nhật alias 'restore'
     if grep -q "alias restore=" "$shell_rc_file"; then
         current_alias_restore=$(grep "alias restore=" "$shell_rc_file" | cut -d "'" -f 2 | cut -d " " -f 1)
         if [[ "$current_alias_restore" != "$0" ]]; then
@@ -123,7 +121,6 @@ setup_alias() {
         echo "Đã thêm alias 'restore' vào $shell_rc_file."
     fi
 
-    # Kiểm tra và cập nhật alias 'backup'
     if grep -q "alias backup=" "$shell_rc_file"; then
         current_alias_backup=$(grep "alias backup=" "$shell_rc_file" | cut -d "'" -f 2)
         if [[ "$current_alias_backup" != "$0" ]]; then
@@ -161,45 +158,48 @@ restore_menu() {
 
     echo "0) Thoát"
     echo
-    read -p "Nhập lựa chọn của bạn: " choice
 
-    case $choice in
-        1)
-            if [[ ! "$PRIMARY_REPO" =~ ^rclone: ]]; then
-                local selected_repo="rclone:$PRIMARY_REPO"
-            else
-                local selected_repo="$PRIMARY_REPO"
-            fi
-            ;;
-        0)
-            echo "Thoát Restic Multi-Cloud Backup Manager."
-            echo
-            exit 0
-            ;;
-        *)
-            if [[ $choice -ge 2 ]]; then
-                local index=$((choice - 2))
-                if [ $index -ge 0 ] && [ $index -lt ${#SECONDARY_REPOS[@]} ]; then
-                    if [[ ! "${SECONDARY_REPOS[$index]}" =~ ^rclone: ]]; then
-                        local selected_repo="rclone:${SECONDARY_REPOS[$index]}"
+    # Xử lý lựa chọn kho lưu trữ
+    while true; do
+        read -p "Nhập lựa chọn của bạn: " choice
+
+        case $choice in
+            1)
+                if [[ ! "$PRIMARY_REPO" =~ ^rclone: ]]; then
+                    local selected_repo="rclone:$PRIMARY_REPO"
+                else
+                    local selected_repo="$PRIMARY_REPO"
+                fi
+                break
+                ;;
+            0)
+                echo "Thoát Restic Multi-Cloud Backup Manager."
+                echo
+                exit 0
+                ;;
+            *)
+                if [[ $choice -ge 2 ]]; then
+                    local index=$((choice - 2))
+                    if [ $index -ge 0 ] && [ $index -lt ${#SECONDARY_REPOS[@]} ]; then
+                        if [[ ! "${SECONDARY_REPOS[$index]}" =~ ^rclone: ]]; then
+                            local selected_repo="rclone:${SECONDARY_REPOS[$index]}"
+                        else
+                            local selected_repo="${SECONDARY_REPOS[$index]}"
+                        fi
+                        break
                     else
-                        local selected_repo="${SECONDARY_REPOS[$index]}"
+                        echo -e "\e[31m❌ Không có kho lưu trữ dự phòng tương ứng với lựa chọn này.\e[0m"
                     fi
                 else
-                    echo "Không có kho lưu trữ dự phòng tương ứng với lựa chọn này."
-                    restore_menu
-                    return
+                    echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
                 fi
-            else
-                echo "Lựa chọn không hợp lệ"
-                restore_menu
-                return
-            fi
-            ;;
-    esac
+                ;;
+        esac
+    done
 
+    # Kiểm tra kết nối đến kho lưu trữ
     if ! restic snapshots -r "$selected_repo" > /dev/null 2>&1; then
-        echo "❌ Lỗi: Không thể kết nối đến kho lưu trữ $selected_repo."
+        echo -e "\e[31m❌ Lỗi: Không thể kết nối đến kho lưu trữ $selected_repo.\e[0m"
         echo "Vui lòng kiểm tra lại cấu hình hoặc chọn kho lưu trữ khác."
         echo
         restore_menu
@@ -214,6 +214,7 @@ restore_menu() {
 
     local snapshots_result=$(restic snapshots -r "$selected_repo")
 
+    # Xử lý chọn ID bản sao lưu
     while true; do
         read -p "📋 Nhập ID bản sao lưu để phục hồi (hoặc 'back' để quay lại): " snapshot_id
 
@@ -223,15 +224,13 @@ restore_menu() {
         fi
 
         if [[ ! "$snapshot_id" =~ ^[a-f0-9]{8}$ ]]; then
-            echo
-            echo "❌ ID không hợp lệ. ID phải là chuỗi hex dài 8 ký tự (ví dụ: 96701d8b)."
+            echo -e "\e[31m❌ ID không hợp lệ. ID phải là chuỗi hex dài 8 ký tự (ví dụ: 96701d8b).\e[0m"
             echo
             continue
         fi
 
         if ! echo "$snapshots_result" | grep -q -w "$snapshot_id"; then
-            echo
-            echo "❌ ID không tồn tại trong kho lưu trữ."
+            echo -e "\e[31m❌ ID không tồn tại trong kho lưu trữ.\e[0m"
             echo
             continue
         fi
@@ -239,104 +238,176 @@ restore_menu() {
         break
     done
 
-    echo
-    echo "=== TÙY CHỌN PHỤC HỒI ==="
-    echo "1) Phục hồi toàn bộ bản sao lưu"
-    echo "2) Phục hồi một phần (thư mục/tập tin cụ thể)"
-    echo "0) Quay lại"
-    read -p "Nhập lựa chọn của bạn: " restore_choice
+    # Xử lý tùy chọn phục hồi
+    while true; do
+        echo
+        echo "=== TÙY CHỌN PHỤC HỒI ==="
+        echo "1) Phục hồi toàn bộ bản sao lưu"
+        echo "2) Phục hồi một phần (thư mục/tập tin cụ thể)"
+        echo "0) Quay lại"
+        read -p "Nhập lựa chọn của bạn: " restore_choice
 
-    case $restore_choice in
-        1)
-            while true; do
-                echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
-                echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
-                echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
-                read -p "> " restore_path
-                if [ -z "$restore_path" ]; then
-                    restore_path="/"
-                fi
+        case $restore_choice in
+            1)
+                local restore_path=""
 
-                if [[ ! "$restore_path" =~ ^/ ]]; then
+                while true; do
+                    echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
+                    echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
+                    echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
+                    read -p "> " restore_path
+                    if [ -z "$restore_path" ]; then
+                        restore_path="/"
+                    fi
+
+                    if [[ ! "$restore_path" =~ ^/ ]]; then
+                        echo -e "\e[31m❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user\e[0m"
+                        echo
+                        continue
+                    fi
+
+                    while true; do
+                        echo
+                        echo "=== XÁC NHẬN PHỤC HỒI ==="
+                        echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
+                        echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
+                        echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
+                        echo
+                        echo "1) Thực hiện phục hồi"
+                        echo "2) Sửa lại đường dẫn"
+                        echo "0) Trở về menu chính"
+                        echo
+                        read -p "Nhập lựa chọn của bạn: " confirm_choice
+
+                        case $confirm_choice in
+                            1)
+                                restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path"
+                                return
+                                ;;
+                            2)
+                                echo "Bắt đầu nhập lại đường dẫn..."
+                                break
+                                ;;
+                            0)
+                                restore_menu
+                                return
+                                ;;
+                            *)
+                                echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
+                                echo
+                                ;;
+                        esac
+                    done
+                done
+                ;;
+            2)
+                local restore_path=""
+                local restore_item=""
+
+                # Nhập đường dẫn đích để phục hồi
+                while true; do
+                    echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
+                    echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
+                    echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
+                    read -p "> " restore_path
+                    if [ -z "$restore_path" ]; then
+                        restore_path="/"
+                    fi
+
+                    if [[ ! "$restore_path" =~ ^/ ]]; then
+                        echo -e "\e[31m❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user\e[0m"
+                        echo
+                        continue
+                    fi
+                    break
+                done
+
+                # Vòng lặp chính cho quá trình xác nhận và nhập đường dẫn phục hồi
+                while true; do
+                    # Nhập đường dẫn thư mục/tập tin cần phục hồi nếu chưa có hoặc cần nhập lại
+                    if [ -z "$restore_item" ]; then
+                        while true; do
+                            echo "📂 Nhập đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi."
+                            echo "   Ví dụ: /home/backup (phục hồi thư mục /home/backup từ bản sao lưu): "
+                            read -p "> " restore_item
+
+                            if [[ ! "$restore_item" =~ ^/ ]]; then
+                                echo -e "\e[31m❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/backup\e[0m"
+                                echo
+                                continue
+                            fi
+                            break
+                        done
+                    fi
+
                     echo
-                    echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user"
+                    echo "=== XÁC NHẬN PHỤC HỒI ==="
+                    echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
+                    echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
+                    echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
+                    echo -e "📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: \e[31m$restore_item\e[0m"
                     echo
-                    continue
-                fi
+                    echo "1) Thực hiện phục hồi"
+                    echo "2) Sửa lại đường dẫn phục hồi (nơi dữ liệu giải nén vào)"
+					echo "3) Sửa lại đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi"
+                    echo "0) Trở về menu chính"
+                    echo
+                    read -p "Nhập lựa chọn của bạn: " confirm_choice
 
-                break
-            done
-
-            echo
-            echo "=== XÁC NHẬN PHỤC HỒI ==="
-            echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
-            echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
-            echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
-            read -p "⚠️ Xác nhận phục hồi? (yes/no): " confirm
-
-            if [ "$confirm" == "yes" ]; then
-                restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path"
-            else
+                    case $confirm_choice in
+                        1)
+                            restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path" --include "$restore_item"
+                            return
+                            ;;
+						2)
+							while true; do
+								echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào) mới:"
+								read -p "> " restore_path
+								if [ -z "$restore_path" ]; then
+									restore_path="/"
+								fi
+								# Kiểm tra đường dẫn có bắt đầu bằng / không
+								if [[ ! "$restore_path" =~ ^/ ]]; then
+									echo -e "\e[31m❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user\e[0m"
+									continue  # Yêu cầu nhập lại đường dẫn
+								else
+									break  # Thoát khỏi vòng lặp nếu đường dẫn hợp lệ
+								fi
+							done
+							continue
+							;;
+						3)
+							while true; do
+								echo "📂 Nhập đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi mới (ví dụ: /home/backup):"
+								read -p "> " restore_item
+								if [[ ! "$restore_item" =~ ^/ ]]; then
+									echo -e "\e[31m❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/backup\e[0m"
+								else
+									break  # Thoát khỏi vòng lặp nếu đường dẫn hợp lệ
+								fi
+							done
+							continue
+							;;
+                        0)
+                            restore_menu
+                            return
+                            ;;
+                        *)
+                            echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
+                            echo
+                            ;;
+                    esac
+                done
+                ;;
+            0)
                 restore_menu
-            fi
-            ;;
-        2)
-            while true; do
-                echo "📂 Nhập đường dẫn để phục hồi (nơi dữ liệu giải nén vào)."
-                echo "   Ví dụ: /home/user (dữ liệu trên cloud storage sẽ giải nén vào /home/user): "
-                echo "   Ví dụ: / (dữ liệu trên cloud storage sẽ tự động giải nén vào đường dẫn như ban đầu): "
-                read -p "> " restore_path
-                if [ -z "$restore_path" ]; then
-                    restore_path="/"
-                fi
-
-                if [[ ! "$restore_path" =~ ^/ ]]; then
-                    echo
-                    echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/user"
-                    echo
-                    continue
-                fi
-
-                break
-            done
-
-            while true; do
-                echo "📂 Nhập đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi."
-                echo "   Ví dụ: /home/backup (phục hồi thư mục /home/backup từ bản sao lưu): "
-                read -p "> " restore_item
-
-                if [[ ! "$restore_item" =~ ^/ ]]; then
-                    echo
-                    echo "❌ Đường dẫn phải bắt đầu bằng / Ví dụ: /home/backup"
-                    echo
-                    continue
-                fi
-
-                break
-            done
-
-            echo
-            echo "=== XÁC NHẬN PHỤC HỒI ==="
-            echo -e "📦 Kho lưu trữ: \e[32m$selected_repo\e[0m"
-            echo -e "📋 ID bản sao lưu: \e[34m$snapshot_id\e[0m"
-            echo -e "📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): \e[33m$restore_path\e[0m"
-            echo -e "📂 Đường dẫn thư mục/tập tin trong bản sao lưu muốn phục hồi: \e[31m$restore_item\e[0m"
-            read -p "⚠️ Xác nhận phục hồi? (yes/no): " confirm
-
-            if [ "$confirm" == "yes" ]; then
-                restic restore -r "$selected_repo" "$snapshot_id" --target "$restore_path" --include "$restore_item"
-            else
-                restore_menu
-            fi
-            ;;
-        0)
-            restore_menu
-            ;;
-        *)
-            echo "Lựa chọn không hợp lệ"
-            restore_menu
-            ;;
-    esac
+                return
+                ;;
+            *)
+                echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
+                ;;
+        esac
+    done
 }
 
 # ==================== THỰC HIỆN BACKUP ====================
@@ -407,9 +478,12 @@ perform_backup() {
 
 # ==================== XỬ LÝ THAM SỐ ĐẦU VÀO ====================
 if [ "$1" == "install" ]; then
+	setup_lock
     setup_alias
     exit 0
 elif [ "$1" == "restore" ]; then
+	setup_lock
+	check_cron_job
     restore_menu
     exit 0
 fi
