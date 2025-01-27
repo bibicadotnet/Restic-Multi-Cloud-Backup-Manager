@@ -25,7 +25,6 @@ Bash script sao lưu và phục hồi dữ liệu qua Restic và Rclone
 ```
 ```
 === XÁC NHẬN PHỤC HỒI ===
-=== XÁC NHẬN PHỤC HỒI ===
 📦 Kho lưu trữ: rclone:cloudflare-free:bibica-net
 📋 ID bản sao lưu: 2df1aa71
 📂 Đường dẫn phục hồi (nơi dữ liệu giải nén vào): /test004
