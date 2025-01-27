@@ -21,7 +21,7 @@ KEEP_MONTHLY=12
 # Chính sách kiểm tra toàn vẹn dữ liệu
 VERIFY_HOUR=4
 
-# Cấu hình Secondary Backup SECONDARY_REMOTE="google-drive-api:bibica-net cloudflare-free:bibica-net cloudflare-r2:bibica-net"
+# Cấu hình Secondary Backup
 SECONDARY_REMOTE=""
 
 # Cấu hình Rclone
