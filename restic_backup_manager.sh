@@ -3,8 +3,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # ==================== CẤU HÌNH ====================
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxxxxxxx"
+BOT_API_KEY="xxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 export RESTIC_REPOSITORY="rclone:cloudflare-free:bibica-net"
@@ -211,6 +211,12 @@ restore_menu() {
         if [ "$snapshot_id" == "back" ]; then
             restore_menu
             return
+        fi
+		
+        if [[ ! "$snapshot_id" =~ ^[a-f0-9]{8}$ ]]; then
+            echo -e "\e[31m❌ ID không hợp lệ. ID phải là chuỗi hex dài 8 ký tự (ví dụ: 96701d8b).\e[0m"
+            echo
+            continue
         fi
 
         # Kiểm tra xem snapshot_id có tồn tại trong kết quả snapshots hay không
