@@ -3,8 +3,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # ==================== CẤU HÌNH ====================
 # Cấu hình Telegram
-BOT_API_KEY="xxxxxx:xxxxxxxxxxxxxxxxxxxx"
-CHAT_ID="xxxxxxxxxxx"
+BOT_API_KEY="xxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxx"
+CHAT_ID="xxxxxxxxxxxxxx"
 
 # Cấu hình Restic Primary Backup
 export RESTIC_REPOSITORY="rclone:cloudflare-free:bibica-net"
@@ -181,18 +181,18 @@ restore_menu() {
                             local selected_repo="${SECONDARY_REPOS[$index]}"
                         fi
                         break
-                    else
-                        echo -e "\e[31m❌ Không có kho lưu trữ dự phòng tương ứng với lựa chọn này.\e[0m"
                     fi
-                else
-                    echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
                 fi
+                echo -e "\e[31m❌ Lựa chọn không hợp lệ. Vui lòng chọn lại.\e[0m"
                 ;;
         esac
     done
 
-    if ! restic snapshots -r "$selected_repo" > /dev/null 2>&1; then
+    # Kiểm tra kết nối đến kho lưu trữ và lấy danh sách snapshots
+    local snapshots_result
+    if ! snapshots_result=$(restic snapshots -r "$selected_repo" 2>&1); then
         echo -e "\e[31m❌ Lỗi: Không thể kết nối đến kho lưu trữ $selected_repo.\e[0m"
+        echo "$snapshots_result"
         echo "Vui lòng kiểm tra lại cấu hình hoặc chọn kho lưu trữ khác."
         echo
         restore_menu
@@ -202,10 +202,8 @@ restore_menu() {
     echo
     echo "Đã chọn kho lưu trữ: $selected_repo"
     echo "=== DANH SÁCH CÁC BẢN SAO LƯU ==="
-    restic snapshots -r "$selected_repo"
+    echo "$snapshots_result"
     echo
-
-    local snapshots_result=$(restic snapshots -r "$selected_repo")
 
     while true; do
         read -p "📋 Nhập ID bản sao lưu để phục hồi (hoặc 'back' để quay lại): " snapshot_id
@@ -215,12 +213,7 @@ restore_menu() {
             return
         fi
 
-        if [[ ! "$snapshot_id" =~ ^[a-f0-9]{8}$ ]]; then
-            echo -e "\e[31m❌ ID không hợp lệ. ID phải là chuỗi hex dài 8 ký tự (ví dụ: 96701d8b).\e[0m"
-            echo
-            continue
-        fi
-
+        # Kiểm tra xem snapshot_id có tồn tại trong kết quả snapshots hay không
         if ! echo "$snapshots_result" | grep -q -w "$snapshot_id"; then
             echo -e "\e[31m❌ ID không tồn tại trong kho lưu trữ.\e[0m"
             echo
@@ -236,7 +229,6 @@ restore_menu() {
         echo "1) Phục hồi toàn bộ bản sao lưu"
         echo "2) Phục hồi một phần (thư mục/tập tin cụ thể)"
         echo "0) Quay lại"
-		echo
         read -p "Nhập lựa chọn của bạn: " restore_choice
 
         case $restore_choice in
