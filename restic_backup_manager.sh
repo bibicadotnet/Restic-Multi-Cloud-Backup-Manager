@@ -397,7 +397,7 @@ perform_backup() {
 		log "Bắt đầu sao lưu dự phòng"
 		do_backup() {
 			local target="$1"
-			if ! error_output=$(rclone sync "$2" "$target" 2>&1); then
+			if ! error_output=$(rclone sync "$2" "$target" --drive-use-trash=false 2>&1); then
 				notify_error "Sao lưu dự phòng thất bại - $target" "$error_output"
 				exit 1
 			fi
